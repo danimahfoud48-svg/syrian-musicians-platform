@@ -3,8 +3,9 @@ import { useSearchParams } from 'react-router-dom';
 import { Send, MessageSquare, User, Search } from 'lucide-react';
 import gsap from 'gsap';
 import styles from './ChatPage.module.css';
+import API from './api';
 
-const API_URL = 'http://localhost:5000/api';
+const API_URL = window.location.hostname === 'localhost' ? 'http://localhost:5000/api' : '/api';
 
 export default function ChatPage({ currentUser }) {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -246,11 +247,7 @@ export default function ChatPage({ currentUser }) {
                   <div className={styles.avatarContainer}>
                     <div className={styles.avatarWrapper}>
                       {conv.peer_avatar ? (
-                        <img
-                          src={`http://localhost:5000/uploads/${conv.peer_avatar}`}
-                          alt={conv.peer_name}
-                          className={styles.avatarImg}
-                        />
+                        <img src={`${window.location.hostname === 'localhost' ? 'http://localhost:5000' : ''}/uploads/${conv.peer_avatar}`} alt={conv.peer_name} className={styles.avatarImg} />
                       ) : (
                         <User size={24} color="#f59e0b" />
                       )}
@@ -284,11 +281,7 @@ export default function ChatPage({ currentUser }) {
               <div className={styles.avatarContainer}>
                 <div className={styles.avatarWrapperSmall}>
                   {activeConv.peer_avatar ? (
-                    <img
-                      src={`http://localhost:5000/uploads/${activeConv.peer_avatar}`}
-                      alt={activeConv.peer_name}
-                      className={styles.avatarImg}
-                    />
+                    <img src={`${window.location.hostname === 'localhost' ? 'http://localhost:5000' : ''}/uploads/${activeConv.peer_avatar}`} alt={activeConv.peer_name} className={styles.avatarImg} />
                   ) : (
                     <User size={20} color="#f59e0b" />
                   )}

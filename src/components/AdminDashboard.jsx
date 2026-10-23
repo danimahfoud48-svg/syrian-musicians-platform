@@ -2,8 +2,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Music, ShieldCheck, Check, XCircle, LogOut, CheckCircle2, Trash2, FileText, ExternalLink, User, AlertCircle } from 'lucide-react';
 import gsap from 'gsap';
 import styles from './AdminDashboard.module.css';
+import API from './api';
 
-const API_URL = 'http://localhost:5000/api';
+const API_URL = window.location.hostname === 'localhost' ? 'http://localhost:5000/api' : '/api';
 
 export default function AdminDashboard({ currentUser, setCurrentUser }) {
   const [profilesList, setProfilesList] = useState([]);
@@ -149,7 +150,11 @@ export default function AdminDashboard({ currentUser, setCurrentUser }) {
                       <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '10px' }}>
                         <div className={styles.avatarCircle}>
                           {req.avatar ? (
-                            <img src={`http://localhost:5000/uploads/${req.avatar}`} alt="Avatar" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
+                          <img 
+                                src={`${window.location.hostname === 'localhost' ? 'http://localhost:5000' : ''}/uploads/${req.avatar}`} 
+  alt="Avatar" 
+                                style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} 
+                          />                           
                           ) : (
                             <User size={22} color="#f59e0b" />
                           )}
@@ -185,7 +190,7 @@ export default function AdminDashboard({ currentUser, setCurrentUser }) {
                             </div>
                           )}
                           {req.pending_attachment && (
-                            <a href={`http://localhost:5000/uploads/${req.pending_attachment}`} target="_blank" rel="noopener noreferrer" className={styles.attachmentLink}>
+                            <a href={`${window.location.hostname === 'localhost' ? 'http://localhost:5000' : ''}/uploads/${req.pending_attachment}`} target="_blank" rel="noopener noreferrer" className={styles.attachmentLink}>
                               <FileText size={12} /> معاينة فيديو الآلة الجديد <ExternalLink size={10} />
                             </a>
                           )}
@@ -202,7 +207,7 @@ export default function AdminDashboard({ currentUser, setCurrentUser }) {
 
                       {req.attachment && !hasPendingUpdate && (
                         <div style={{ margin: '10px 0' }}>
-                          <a href={`http://localhost:5000/uploads/${req.attachment}`} target="_blank" rel="noopener noreferrer" className={styles.attachmentLink}>
+                          <a href={`${window.location.hostname === 'localhost' ? 'http://localhost:5000' : ''}/uploads/${req.attachment}`} target="_blank" rel="noopener noreferrer" className={styles.attachmentLink}>
                             <FileText size={14} /> عرض الفيديو الإثبات <ExternalLink size={12} />
                           </a>
                         </div>

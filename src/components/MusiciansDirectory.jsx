@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, User, Film, MessageSquare, X, Music } from 'lucide-react';
 import styles from './MusiciansDirectory.module.css';
+import API from './api';
 
-const API_URL = 'http://localhost:5000/api';
+const API_URL = window.location.hostname === 'localhost' ? 'http://localhost:5000/api' : '/api';
 
 export default function MusiciansDirectory({ currentUser }) {
   const [profiles, setProfiles] = useState([]);
@@ -103,11 +104,7 @@ export default function MusiciansDirectory({ currentUser }) {
               <div className={styles.cardHeader}>
                 <div className={styles.avatarWrapper}>
                   {profile.avatar ? (
-                    <img
-                      src={`http://localhost:5000/uploads/${profile.avatar}`}
-                      alt={profile.full_name}
-                      className={styles.avatarImg}
-                    />
+                    <img src={`${window.location.hostname === 'localhost' ? 'http://localhost:5000' : ''}/uploads/${profile.avatar}`} alt={profile.full_name} className={styles.avatarImg} />
                   ) : (
                     <User size={26} color="#facc15" />
                   )}
@@ -180,11 +177,7 @@ function ProfileModal({ profileId, currentUser, onClose, onStartChat }) {
             <div className={styles.modalHeader}>
               <div className={styles.modalAvatarWrapper}>
                 {data.musician.avatar ? (
-                  <img
-                    src={`http://localhost:5000/uploads/${data.musician.avatar}`}
-                    alt={data.musician.full_name}
-                    className={styles.avatarImg}
-                  />
+                  <img src={`${window.location.hostname === 'localhost' ? 'http://localhost:5000' : ''}/uploads/${data.musician.avatar}`} alt={data.musician.full_name} className={styles.avatarImg} />
                 ) : (
                   <User size={30} color="#facc15" />
                 )}
@@ -214,11 +207,7 @@ function ProfileModal({ profileId, currentUser, onClose, onStartChat }) {
                 <div className={styles.modalVideosGrid}>
                   {data.videos.map((vid) => (
                     <div key={vid.id} className={styles.modalVideoCard}>
-                      <video
-                        controls
-                        src={`http://localhost:5000/uploads/${vid.video_url}`}
-                        className={styles.modalVideoPlayer}
-                      />
+                      <video controls src={`${window.location.hostname === 'localhost' ? 'http://localhost:5000' : ''}/uploads/${vid.video_url}`} className={styles.modalVideoPlayer} />
                       <p className={styles.modalVideoTitle}>{vid.title || 'فيديو'}</p>
                     </div>
                   ))}

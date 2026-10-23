@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Upload, Film, Video } from 'lucide-react';
 import gsap from 'gsap';
 import styles from './VideosManager.module.css';
+import API from './api';
 
 export default function VideosManager({ API_URL, currentUser }) {
   const [videos, setVideos] = useState([]);
@@ -156,11 +157,7 @@ export default function VideosManager({ API_URL, currentUser }) {
                 ref={(el) => (videoCardsRef.current[index] = el)}
                 className={styles.videoCard}
               >
-                <video
-                  controls
-                  src={`http://localhost:5000/uploads/${vid.video_url}`}
-                  className={styles.videoPlayer}
-                />
+                <video controls src={`${window.location.hostname === 'localhost' ? 'http://localhost:5000' : ''}/uploads/${vid.video_url}`} className={styles.videoPlayer} />
                 <div className={styles.videoInfo}>
                   <p className={styles.videoTitle}>{vid.title || 'مقطع عزف'}</p>
                 </div>

@@ -1,0 +1,61 @@
+/* ==========================================
+   Syrian Musicians - Luxury Dark & Gold Theme
+   ========================================== */
+
+:root {
+  --bg-main: #070709;        /* أسود فاحم وعميق جداً */
+  --bg-card: #121218;        /* رمادي داكن فخم للكروت */
+  --bg-card-hover: #1a1a22;  /* لون الكرت عند المرور */
+  
+  --gold-primary: #f59e0b;   /* أصفر ذهبي دافئ وساطع */
+  --gold-light: #fcd34d;     /* ذهبي فاتح للإضاءة */
+  --gold-dark: #b45309;      /* ذهبي غامق للحدود */
+  --gold-alpha: rgba(245, 158, 11, 0.12);
+  
+  --text-main: #ffffff;      /* أبيض ناصع وواضح جداً */
+  --text-muted: #cbd5e1;     /* رمادي فاتح واضح جداً للقراءة (بدل الغامق المزعج) */
+  --border-color: #272732;   /* حدود واضحة وغير مزعجة */
+  --border-gold: rgba(245, 158, 11, 0.4);
+
+  --font-sans: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  background-color: var(--bg-main);
+  color: var(--text-main);
+  font-family: var(--font-sans);
+  min-height: 100vh;
+  direction: rtl;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* حل جذري لضمان وضوح النصوص الفرعية في كل مكان */
+p, span, li, label {
+  color: var(--text-muted);
+}
+
+h1, h2, h3, h4, h5, h6 {
+  color: var(--text-main);
+}
+
+/* Scrollbar Customization */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-main);
+}
+::-webkit-scrollbar-thumb {
+  background: #272732;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--gold-primary);
+}

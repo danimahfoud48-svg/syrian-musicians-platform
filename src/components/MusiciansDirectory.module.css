@@ -1,0 +1,403 @@
+/* ==========================================
+   Luxury Musicians Directory - Syrian Musicians
+   ========================================== */
+
+.directoryContainer {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px 20px;
+  direction: rtl;
+}
+
+.directoryHeader {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 30px;
+  background-color: #121218;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 15px 35px -10px rgba(0, 0, 0, 0.6);
+}
+
+.titleRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+.directoryTitle {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.searchFilterRow {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.searchBox {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background-color: #070709;
+  border: 1px solid #272732;
+  border-radius: 12px;
+  padding: 10px 16px;
+  flex: 1;
+  min-width: 240px;
+  transition: border-color 0.25s ease;
+}
+
+.searchBox:focus-within {
+  border-color: #f59e0b;
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.15);
+}
+
+.searchInput {
+  background: transparent;
+  border: none;
+  color: #ffffff;
+  outline: none;
+  font-size: 0.95rem;
+  width: 100%;
+}
+
+.searchInput::placeholder {
+  color: #64748b;
+}
+
+.categorySelect {
+  background-color: #070709;
+  border: 1px solid #272732;
+  border-radius: 12px;
+  padding: 10px 16px;
+  color: #ffffff;
+  outline: none;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: border-color 0.25s ease;
+}
+
+.categorySelect:focus {
+  border-color: #f59e0b;
+}
+
+/* Musicians Grid */
+.musiciansGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
+}
+
+.musicianCard {
+  background-color: #121218;
+  border: 1px solid #23232b;
+  border-radius: 18px;
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+}
+
+.musicianCard:hover {
+  border-color: rgba(245, 158, 11, 0.45);
+  transform: translateY(-4px);
+  box-shadow: 0 15px 35px -8px rgba(0, 0, 0, 0.7);
+}
+
+.cardHeader {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.avatarWrapper {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background-color: #070709;
+  border: 2px solid #f59e0b;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.25);
+}
+
+.avatarImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.musicianInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.musicianName {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin: 0;
+}
+
+.musicianInstrument {
+  font-size: 0.85rem;
+  color: #f59e0b;
+  font-weight: 600;
+}
+
+.musicianBio {
+  font-size: 0.88rem;
+  color: #cbd5e1;
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  line-height: 1.5;
+}
+
+.cardFooter {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1px solid #23232b;
+  padding-top: 14px;
+  margin-top: auto;
+}
+
+.statusIndicator {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.onlineDot {
+  width: 9px;
+  height: 9px;
+  background-color: #22c55e;
+  border-radius: 50%;
+  box-shadow: 0 0 8px #22c55e;
+}
+
+.offlineDot {
+  width: 9px;
+  height: 9px;
+  background-color: #64748b;
+  border-radius: 50%;
+}
+
+.viewProfileBtn {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: #070709;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 10px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 3px 10px rgba(245, 158, 11, 0.3);
+  transition: all 0.2s ease;
+}
+
+.viewProfileBtn:hover {
+  opacity: 0.92;
+  transform: translateY(-1px);
+}
+
+/* Modal Overlay & Content */
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(7, 7, 9, 0.85);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.modalContent {
+  background-color: #121218;
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  border-radius: 24px;
+  width: 100%;
+  max-width: 650px;
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 30px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.closeModalBtn {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  background-color: rgba(255, 255, 255, 0.05);
+  border: 1px solid #272732;
+  color: #ffffff;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.closeModalBtn:hover {
+  background-color: rgba(239, 68, 68, 0.2);
+  border-color: #ef4444;
+  color: #f87171;
+}
+
+.modalHeader {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  border-bottom: 1px solid #23232b;
+  padding-bottom: 20px;
+}
+
+.modalAvatarWrapper {
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  background-color: #070709;
+  border: 2px solid #f59e0b;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 4px 15px rgba(245, 158, 11, 0.3);
+}
+
+.modalTitleInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.modalName {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin: 0;
+}
+
+.modalInstrument {
+  font-size: 0.9rem;
+  color: #f59e0b;
+  font-weight: 600;
+}
+
+.modalSectionTitle {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin: 0 0 10px 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.modalBioText {
+  font-size: 0.92rem;
+  color: #cbd5e1;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.modalVideosGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 14px;
+}
+
+.modalVideoCard {
+  background-color: #070709;
+  border: 1px solid #23232b;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.modalVideoPlayer {
+  width: 100%;
+  height: 140px;
+  background-color: #000;
+}
+
+.modalVideoTitle {
+  font-size: 0.85rem;
+  color: #ffffff;
+  font-weight: 600;
+  padding: 10px;
+  margin: 0;
+}
+
+.modalActionRow {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  border-top: 1px solid #23232b;
+  padding-top: 16px;
+  margin-top: 10px;
+}
+
+.startChatBtn {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: #070709;
+  border: none;
+  padding: 10px 20px;
+  border-radius:.12px;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 0.92rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 4px 14px rgba(245, 158, 11, 0.35);
+  transition: all 0.25s ease;
+}
+
+.startChatBtn:hover {
+  opacity: 0.92;
+  transform: translateY(-1px);
+}
+
+.emptyDirectory {
+  text-align: center;
+  padding: 60px 20px;
+  color: #94a3b8;
+  font-size: 1rem;
+  background-color: #121218;
+  border: 1px solid #23232b;
+  border-radius: 20px;
+}

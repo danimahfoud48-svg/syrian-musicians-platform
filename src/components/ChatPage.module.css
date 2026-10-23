@@ -1,0 +1,321 @@
+/* ==========================================
+   Luxury Chat Page - Syrian Musicians
+   ========================================== */
+
+.chatContainer {
+  display: flex;
+  height: 78vh;
+  background-color: #121218;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  border-radius: 24px;
+  overflow: hidden;
+  direction: rtl;
+  font-family: system-ui, -apple-system, sans-serif;
+  max-width: 1200px;
+  margin: 20px auto;
+  box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.7);
+}
+
+/* Sidebar / Conversations List */
+.sidebar {
+  width: 340px;
+  border-left: 1px solid #23232b;
+  display: flex;
+  flex-direction: column;
+  background-color: #070709;
+}
+
+.sidebarHeader {
+  padding: 18px;
+  border-bottom: 1px solid #23232b;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.searchBox {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  margin: 14px;
+  background-color: #121218;
+  border-radius: 12px;
+  border: 1px solid #272732;
+  transition: border-color 0.25s ease;
+}
+
+.searchBox:focus-within {
+  border-color: #f59e0b;
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.15);
+}
+
+.searchInput {
+  background-color: transparent;
+  border: none;
+  color: #ffffff;
+  outline: none;
+  font-size: 0.9rem;
+  width: 100%;
+}
+
+.searchInput::placeholder {
+  color: #64748b;
+}
+
+.convList {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 10px 14px 10px;
+}
+
+.convItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 12px;
+  cursor: pointer;
+  margin-bottom: 8px;
+  transition: all 0.2s ease;
+  border: 1px solid transparent;
+}
+
+.convItem:hover {
+  background-color: rgba(255, 255, 255, 0.04);
+  border-color: #272732;
+}
+
+.convItemActive {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 12px;
+  cursor: pointer;
+  margin-bottom: 8px;
+  background-color: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.4);
+}
+
+.avatarContainer {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.avatarWrapper {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background-color: #070709;
+  border: 2px solid #f59e0b;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 10px rgba(245, 158, 11, 0.2);
+}
+
+.avatarWrapperSmall {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background-color: #070709;
+  border: 1.5px solid #f59e0b;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.avatarImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.statusDot {
+  position: absolute;
+  bottom: 1px;
+  left: 1px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid #070709;
+  background-color: #22c55e;
+  box-shadow: 0 0 8px #22c55e;
+}
+
+.statusDotSmall {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 2px solid #070709;
+  background-color: #22c55e;
+  box-shadow: 0 0 6px #22c55e;
+}
+
+.convNameRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.convName {
+  color: #ffffff;
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.unreadBadge {
+  background-color: #ef4444;
+  color: #ffffff;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 10px;
+  box-shadow: 0 0 10px #ef4444;
+}
+
+.lastMessage {
+  font-size: 0.82rem;
+  color: #cbd5e1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.noConvText {
+  color: #94a3b8;
+  font-size: 0.9rem;
+  text-align: center;
+  padding: 30px;
+}
+
+/* Chat Area */
+.chatArea {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background-color: #121218;
+}
+
+.chatHeader {
+  padding: 14px 22px;
+  border-bottom: 1px solid #23232b;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background-color: rgba(18, 18, 24, 0.95);
+  backdrop-filter: blur(10px);
+}
+
+.messagesBox {
+  flex: 1;
+  padding: 24px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.messageRow {
+  display: flex;
+  width: 100%;
+}
+
+.myMessageBubble {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: #070709;
+  padding: 12px 16px;
+  border-radius: 16px 16px 4px 16px;
+  max-width: 65%;
+  font-size: 0.95rem;
+  font-weight: 500;
+  box-shadow: 0 4px 15px rgba(245, 158, 11, 0.25);
+}
+
+.otherMessageBubble {
+  background-color: #1a1a22;
+  color: #ffffff;
+  padding: 12px 16px;
+  border-radius: 16px 16px 16px 4px;
+  max-width: 65%;
+  font-size: 0.95rem;
+  border: 1px solid #272732;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+.msgTime {
+  font-size: 0.72rem;
+  opacity: 0.75;
+  display: block;
+  text-align: left;
+  margin-top: 6px;
+  font-weight: 600;
+}
+
+.sendForm {
+  display: flex;
+  padding: 14px 22px;
+  border-top: 1px solid #23232b;
+  background-color: rgba(18, 18, 24, 0.95);
+  backdrop-filter: blur(10px);
+  gap: 12px;
+}
+
+.sendInput {
+  flex: 1;
+  background-color: #070709;
+  border: 1px solid #272732;
+  border-radius: 12px;
+  padding: 12px 16px;
+  color: #ffffff;
+  outline: none;
+  font-size: 0.95rem;
+  transition: border-color 0.25s ease;
+}
+
+.sendInput::placeholder {
+  color: #64748b;
+}
+
+.sendInput:focus {
+  border-color: #f59e0b;
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.15);
+}
+
+.sendBtn {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: #070709;
+  border: none;
+  border-radius: 12px;
+  width: 46px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+  transition: all 0.25s ease;
+}
+
+.sendBtn:hover {
+  opacity: 0.92;
+  transform: translateY(-1px);
+}
+
+.emptyChatState {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 24px;
+  color: #94a3b8;
+  font-size: 1rem;
+}

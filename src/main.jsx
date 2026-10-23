@@ -1,6 +1,6 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import './app.css' // ملف التنسيقات الخاص بك
+import './App.css' // تم تعديل A لتصبح كابيتال
 import App from './App.jsx'
 
 createRoot(document.getElementById('root')).render(

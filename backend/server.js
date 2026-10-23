@@ -12,9 +12,13 @@ app.use(cors());
 app.use(express.json());
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// التأكد من وجود مجلد uploads
-const uploadDir = path.join(__dirname, 'uploads');
-if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir);
+// التأكد من وجود مجلد uploads (محلياً فقط لتجنب أخطاء Vercel)
+try {
+  const uploadDir = path.join(__dirname, 'uploads');
+  if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir);
+} catch (err) {
+  console.log('Filesystem is read-only, skipping uploads dir creation.');
+}
 
 // ربط المسارات المقسمة (Routes) بشكل دقيق ومضبوط
 app.use('/api', require('./routes/auth'));
@@ -27,7 +31,11 @@ app.get('/', (req, res) => {
   res.json({ message: 'Syrian Musicians Backend is running successfully! 🚀' });
 });
 
-// بدء التشغيل
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT} 🚀`);
-});
+// التشغيل محلياً فقط، وتصدير التطبيق ليعمل على Vercel كـ Serverless Function
+if (process.env.NODE_ENV !== 'production') {
+  app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT} 🚀`);
+  });
+}
+
+module.exports = app;

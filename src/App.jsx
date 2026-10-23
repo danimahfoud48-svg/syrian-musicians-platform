@@ -7,8 +7,7 @@ import AdminDashboard from './components/AdminDashboard';
 import UserDashboard from './components/UserDashboard';
 import API from './api';
 
-const API_URL = window.location.hostname === 'localhost' ? 'http://localhost:5000/api' : '/api';
-
+const API_URL = `${window.location.hostname === 'localhost' ? 'http://localhost:5000' : ''}/api`;
 export default function App() {
   // استعادة بيانات المستخدم من ذاكرة المتصفح تلقائياً
   const [currentUser, setCurrentUser] = useState(() => {

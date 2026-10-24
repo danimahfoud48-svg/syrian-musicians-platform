@@ -7,6 +7,7 @@ import VideosManager from './VideosManager';
 import ChatPage from './ChatPage';
 import styles from './MusicianDashboard.module.css';
 import API from '../api';
+import { fileUrl } from '../fileUrl';
 
 const API_URL = window.location.hostname === 'localhost' ? 'http://localhost:5000/api' : '/api';
 
@@ -29,7 +30,7 @@ export default function MusicianDashboard({ currentUser, setCurrentUser }) {
   const activeTab = getCurrentTab();
   const [hasUnread, setHasUnread] = useState(false);
   const [bio, setBio] = useState(currentUser.bio || '');
-  const [previewAvatar, setPreviewAvatar] = useState(currentUser.avatar ? `${window.location.hostname === 'localhost' ? 'http://localhost:5000' : ''}/uploads/${currentUser.avatar}?t=${new Date().getTime()}` : null);
+  const [previewAvatar, setPreviewAvatar] = useState(currentUser.avatar ? `${fileUrl(currentUser.avatar)}?t=${new Date().getTime()}` : null);
   const [loadingBio, setLoadingBio] = useState(false);
   const [loadingAvatar, setLoadingAvatar] = useState(false);
   const [selectedNewInstrument, setSelectedNewInstrument] = useState('');
@@ -134,7 +135,7 @@ export default function MusicianDashboard({ currentUser, setCurrentUser }) {
         alert('تم تحديث الصورة الشخصية بنجاح! 📸');
         setCurrentUser(data.user);
         localStorage.setItem('syrian_musicians_user', JSON.stringify(data.user));
-        if (data.user.avatar) setPreviewAvatar(`${window.location.hostname === 'localhost' ? 'http://localhost:5000' : ''}/uploads/${data.user.avatar}?t=${new Date().getTime()}`);
+        if (data.user.avatar) setPreviewAvatar(`${fileUrl(data.user.avatar)}?t=${new Date().getTime()}`);
       } else { alert(data.error); }
     } catch (err) { alert('حدث خطأ أثناء رفع الصورة'); }
     finally { setLoadingAvatar(false); }

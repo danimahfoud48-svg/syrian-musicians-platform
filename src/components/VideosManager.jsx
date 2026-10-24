@@ -4,6 +4,16 @@ import gsap from 'gsap';
 import styles from './VideosManager.module.css';
 import API from '../api';
 
+// إعدادات Cloudinary: الفيديو بينرفع من المتصفح مباشرة (Vercel ما بيقبل طلبات أكبر من 4.5MB)
+const CLOUD_NAME = 'mpiu1vqo';
+const UPLOAD_PRESET = 'syrian_videos'; // لازم يكون Unsigned Upload Preset بنفس الاسم بحساب Cloudinary
+
+// يدعم الروابط الكاملة (Cloudinary) والملفات القديمة المخزنة باسم الملف فقط
+const fileUrl = (f) =>
+  !f ? '' : f.startsWith('http')
+    ? f
+    : `${window.location.hostname === 'localhost' ? 'http://localhost:5000' : ''}/uploads/${f}`;
+
 export default function VideosManager({ API_URL, currentUser }) {
   const [videos, setVideos] = useState([]);
   const [title, setTitle] = useState('');
@@ -38,10 +48,8 @@ export default function VideosManager({ API_URL, currentUser }) {
   }, [videos]);
 
   const fetchMyVideos = () => {
-    const token = localStorage.getItem('token');
-    fetch(`${API_URL}/profile/me`, {
-      headers: { Authorization: `Bearer ${token}` }
-    })
+    if (!currentUser || !currentUser.id) return;
+    fetch(`${API_URL}/profile/videos/${currentUser.id}`)
       .then((res) => res.json())
       .then((data) => {
         if (data && data.videos) {
@@ -65,17 +73,32 @@ export default function VideosManager({ API_URL, currentUser }) {
     setUploading(true);
     setMessage('');
 
-    const formData = new FormData();
-    formData.append('title', title);
-    formData.append('video', videoFile);
-
-    const token = localStorage.getItem('token');
-
     try {
-      const res = await fetch(`${API_URL}/profile/upload-video`, {
+      // 1) رفع الفيديو مباشرة لـ Cloudinary
+      const cloudForm = new FormData();
+      cloudForm.append('file', videoFile);
+      cloudForm.append('upload_preset', UPLOAD_PRESET);
+
+      const cloudRes = await fetch(
+        `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/video/upload`,
+        { method: 'POST', body: cloudForm }
+      );
+      const cloudData = await cloudRes.json();
+
+      if (!cloudRes.ok) {
+        setMessage(cloudData?.error?.message || 'فشل رفع الفيديو، حاول مرة أخرى');
+        return;
+      }
+
+      // 2) حفظ الرابط بالداتابيز
+      const res = await fetch(`${API_URL}/profile/videos`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-        body: formData
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: currentUser.id,
+          title,
+          videoUrl: cloudData.secure_url
+        })
       });
 
       const data = await res.json();
@@ -86,7 +109,7 @@ export default function VideosManager({ API_URL, currentUser }) {
         setVideoFile(null);
         fetchMyVideos();
       } else {
-        setMessage(data.message || 'حدث خطأ أثناء رفع الفيديو');
+        setMessage(data.message || 'حدث خطأ أثناء حفظ الفيديو');
       }
     } catch (err) {
       console.error(err);
@@ -157,7 +180,7 @@ export default function VideosManager({ API_URL, currentUser }) {
                 ref={(el) => (videoCardsRef.current[index] = el)}
                 className={styles.videoCard}
               >
-                <video controls src={`${window.location.hostname === 'localhost' ? 'http://localhost:5000' : ''}/uploads/${vid.video_url}`} className={styles.videoPlayer} />
+                <video controls src={fileUrl(vid.video_url)} className={styles.videoPlayer} />
                 <div className={styles.videoInfo}>
                   <p className={styles.videoTitle}>{vid.title || 'مقطع عزف'}</p>
                 </div>

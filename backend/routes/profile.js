@@ -2,21 +2,33 @@ const express = require('express');
 const router = express.Router();
 const multer = require('multer');
 const path = require('path');
-const fs = require('fs');
+const { v2: cloudinary } = require('cloudinary');
 const db = require('../db');
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, 'uploads/'),
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, uniqueSuffix + path.extname(file.originalname));
-  }
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET
 });
 
-const upload = multer({ 
-  storage,
-  limits: { fileSize: 50 * 1024 * 1024 }
+// الملفات بتبقى بالذاكرة وبتنرفع مباشرة لـ Cloudinary (Vercel ما بيسمح بالكتابة على القرص)
+// الحد 4MB لأن Vercel بيرفض الطلبات الأكبر من 4.5MB
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 4 * 1024 * 1024 }
 });
+
+function uploadToCloudinary(file) {
+  return new Promise((resolve, reject) => {
+    const isMedia = file.mimetype.startsWith('image/') || file.mimetype.startsWith('video/');
+    const publicId = Date.now() + '-' + Math.round(Math.random() * 1E9) + (isMedia ? '' : path.extname(file.originalname));
+    const stream = cloudinary.uploader.upload_stream(
+      { resource_type: isMedia ? 'auto' : 'raw', folder: 'syrian-musicians', public_id: publicId },
+      (err, result) => (err ? reject(err) : resolve(result))
+    );
+    stream.end(file.buffer);
+  });
+}
 
 // 1️⃣ جلب كافة الحسابات المعتمدة المعروضة بالدليل الشامل
 router.get('/public/list', (req, res) => {
@@ -61,33 +73,37 @@ router.put('/:id', upload.fields([{ name: 'avatar', maxCount: 1 }, { name: 'newA
   const { id } = req.params;
   const { bio, instruments, instrumentsChanged, removeAvatar } = req.body;
 
-  const avatarFile = req.files && req.files['avatar'] ? req.files['avatar'][0].filename : null;
-  const newAttachment = req.files && req.files['newAttachment'] ? req.files['newAttachment'][0].filename : null;
+  const avatarUpload = req.files && req.files['avatar'] ? req.files['avatar'][0] : null;
+  const attachmentUpload = req.files && req.files['newAttachment'] ? req.files['newAttachment'][0] : null;
 
   const isChangingInstruments = instrumentsChanged === 'true';
 
-  if (isChangingInstruments && !newAttachment) {
+  if (isChangingInstruments && !attachmentUpload) {
     return res.status(400).json({ error: 'عند إضافة أو تغيير الآلات الموسيقية، يجب إرفاق فيديو أو مستند إثبات للأدمن!' });
   }
 
-  db.query('SELECT * FROM profiles WHERE id = ?', [id], (err, currentResults) => {
+  db.query('SELECT * FROM profiles WHERE id = ?', [id], async (err, currentResults) => {
     if (err || currentResults.length === 0) return res.status(500).json({ error: 'الحساب غير موجود' });
 
     const currentUserData = currentResults[0];
     let updatedAvatar = currentUserData.avatar;
+    let newAttachment = null;
 
-    if (removeAvatar === 'true') {
-      if (currentUserData.avatar) {
-        const oldPath = path.join(__dirname, '../uploads', currentUserData.avatar);
-        if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
+    try {
+      if (removeAvatar === 'true') {
+        updatedAvatar = null;
+      } else if (avatarUpload) {
+        const uploaded = await uploadToCloudinary(avatarUpload);
+        updatedAvatar = uploaded.secure_url;
       }
-      updatedAvatar = null;
-    } else if (avatarFile) {
-      if (currentUserData.avatar) {
-        const oldPath = path.join(__dirname, '../uploads', currentUserData.avatar);
-        if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
+
+      if (attachmentUpload) {
+        const uploaded = await uploadToCloudinary(attachmentUpload);
+        newAttachment = uploaded.secure_url;
       }
-      updatedAvatar = avatarFile;
+    } catch (uploadErr) {
+      console.error('Cloudinary upload failed:', uploadErr);
+      return res.status(500).json({ error: 'فشل رفع الملف، حاول مرة أخرى' });
     }
 
     const updatedBio = bio !== undefined ? bio : currentUserData.bio;
@@ -129,6 +145,34 @@ router.put('/:id', upload.fields([{ name: 'avatar', maxCount: 1 }, { name: 'newA
       });
     });
   });
+});
+
+// 4️⃣ جلب فيديوهات عضو
+router.get('/videos/:userId', (req, res) => {
+  db.query(
+    'SELECT * FROM videos WHERE user_id = ? ORDER BY created_at DESC',
+    [req.params.userId],
+    (err, videos) => {
+      if (err) return res.status(500).json({ message: err.message });
+      res.json({ videos: videos || [] });
+    }
+  );
+});
+
+// 5️⃣ حفظ رابط فيديو مرفوع مسبقاً على Cloudinary (الرفع بيصير من المتصفح مباشرة)
+router.post('/videos', (req, res) => {
+  const { userId, title, videoUrl } = req.body;
+  if (!userId || !videoUrl) {
+    return res.status(400).json({ message: 'بيانات الفيديو ناقصة' });
+  }
+  db.query(
+    'INSERT INTO videos (user_id, title, video_url) VALUES (?, ?, ?)',
+    [userId, title || '', videoUrl],
+    (err) => {
+      if (err) return res.status(500).json({ message: err.message });
+      res.json({ message: 'تم حفظ الفيديو بنجاح' });
+    }
+  );
 });
 
 module.exports = router;

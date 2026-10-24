@@ -5,7 +5,7 @@ import gsap from 'gsap';
 import MusiciansDirectory from './MusiciansDirectory';
 import ChatPage from './ChatPage';
 import styles from './EmployerDashboard.module.css';
-import API from './api';
+import API from '../api';
 
 const API_URL = window.location.hostname === 'localhost' ? 'http://localhost:5000/api' : '/api';
 

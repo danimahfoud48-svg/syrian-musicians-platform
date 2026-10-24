@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, User, Film, MessageSquare, X, Music } from 'lucide-react';
 import styles from './MusiciansDirectory.module.css';
-import API from './api';
+import API from '../api';
 
 const API_URL = window.location.hostname === 'localhost' ? 'http://localhost:5000/api' : '/api';
 

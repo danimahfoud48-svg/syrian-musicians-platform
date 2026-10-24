@@ -6,7 +6,7 @@ import MusiciansDirectory from './MusiciansDirectory';
 import VideosManager from './VideosManager';
 import ChatPage from './ChatPage';
 import styles from './MusicianDashboard.module.css';
-import API from './api';
+import API from '../api';
 
 const API_URL = window.location.hostname === 'localhost' ? 'http://localhost:5000/api' : '/api';
 

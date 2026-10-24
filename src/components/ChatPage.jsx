@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { Send, MessageSquare, User, Search } from 'lucide-react';
 import gsap from 'gsap';
 import styles from './ChatPage.module.css';
-import API from './api';
+import API from '../api';
 
 const API_URL = window.location.hostname === 'localhost' ? 'http://localhost:5000/api' : '/api';
 

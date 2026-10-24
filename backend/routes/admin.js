@@ -3,10 +3,20 @@ const router = express.Router();
 const path = require('path');
 const fs = require('fs');
 const db = require('../db');
+const { requireAdmin } = require('../middleware/authMiddleware');
 
-// جلب كل الحسابات
+// 🔐 كل مسارات الأدمن محمية: لازم توكن صحيح لحساب أدمن
+router.use(requireAdmin);
+
+// جلب كل الحسابات (بدون عمود كلمة المرور)
 router.get('/profiles', (req, res) => {
-  const query = 'SELECT * FROM profiles ORDER BY created_at DESC';
+  const query = `
+    SELECT id, full_name, email, role, city, instruments, attachment, avatar, bio,
+           status, created_at, pending_bio, pending_instruments, pending_attachment,
+           is_online, last_active
+    FROM profiles
+    ORDER BY created_at DESC
+  `;
   db.query(query, (err, results) => {
     if (err) return res.status(500).json({ error: err.message });
     res.json(results);
@@ -20,7 +30,7 @@ router.put('/profiles/:id', (req, res) => {
 
   if (approveUpdate) {
     const query = `
-      UPDATE profiles 
+      UPDATE profiles
       SET bio = COALESCE(pending_bio, bio),
           instruments = COALESCE(pending_instruments, instruments),
           attachment = COALESCE(pending_attachment, attachment),
@@ -47,7 +57,7 @@ router.put('/profiles/:id', (req, res) => {
 
       // هنا نضمن أن الـ status يعود ليكون 'approved' أو يظل كما كان للعازف الأساسي
       const query = `
-        UPDATE profiles 
+        UPDATE profiles
         SET pending_bio = NULL,
             pending_instruments = NULL,
             pending_attachment = NULL,
@@ -74,7 +84,7 @@ router.put('/profiles/:id', (req, res) => {
 router.delete('/profiles/:id', (req, res) => {
   const { id } = req.params;
   const selectQuery = 'SELECT attachment, avatar, pending_attachment FROM profiles WHERE id = ?';
-  
+
   db.query(selectQuery, [id], (err, results) => {
     if (!err && results && results.length > 0) {
       ['attachment', 'avatar', 'pending_attachment'].forEach(field => {

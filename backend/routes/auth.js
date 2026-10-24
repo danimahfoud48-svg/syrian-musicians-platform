@@ -5,6 +5,7 @@ const path = require('path');
 const bcrypt = require('bcryptjs');
 const { v2: cloudinary } = require('cloudinary');
 const db = require('../db');
+const { signToken } = require('../middleware/authMiddleware');
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -156,7 +157,7 @@ router.post('/login', async (req, res) => {
 
     // ما بنرجّع كلمة المرور (ولا الهاش) للمتصفح
     const { password: _omit, ...safeUser } = user;
-    res.json({ message: 'تم تسجيل الدخول بنجاح', user: safeUser });
+    res.json({ message: 'تم تسجيل الدخول بنجاح', user: { ...safeUser, token: signToken(user) } });
   } catch (err) {
     console.error('Login error:', err);
     res.status(500).json({ error: err.message });

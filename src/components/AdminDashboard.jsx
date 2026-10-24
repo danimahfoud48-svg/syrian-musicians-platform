@@ -16,6 +16,20 @@ export default function AdminDashboard({ currentUser, setCurrentUser }) {
   const [profilesList, setProfilesList] = useState([]);
   const cardsRef = useRef([]);
 
+  // 🔐 كل طلبات الأدمن بتنبعت مع التوكن، وإذا السيرفر رفضه بنطلّع الأدمن لتسجيل الدخول
+  const adminFetch = async (url, options = {}) => {
+    const res = await fetch(url, {
+      ...options,
+      headers: { ...(options.headers || {}), Authorization: `Bearer ${currentUser?.token || ''}` }
+    });
+    if (res.status === 401 || res.status === 403) {
+      alert('انتهت الجلسة أو لا تملك صلاحية. سجّل دخول من جديد.');
+      localStorage.removeItem('syrian_musicians_user');
+      setCurrentUser(null);
+    }
+    return res;
+  };
+
   useEffect(() => {
     fetchProfiles();
   }, []);
@@ -41,7 +55,7 @@ export default function AdminDashboard({ currentUser, setCurrentUser }) {
 
   const fetchProfiles = async () => {
     try {
-      const res = await fetch(`${API_URL}/admin/profiles`);
+      const res = await adminFetch(`${API_URL}/admin/profiles`);
       const data = await res.json();
       if (res.ok) setProfilesList(data);
     } catch (err) {
@@ -50,7 +64,7 @@ export default function AdminDashboard({ currentUser, setCurrentUser }) {
   };
 
   const handleApprove = async (id) => {
-    const res = await fetch(`${API_URL}/admin/profiles/${id}`, {
+    const res = await adminFetch(`${API_URL}/admin/profiles/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status: 'approved' })
@@ -59,7 +73,7 @@ export default function AdminDashboard({ currentUser, setCurrentUser }) {
   };
 
   const handleApproveUpdate = async (id) => {
-    const res = await fetch(`${API_URL}/admin/profiles/${id}`, {
+    const res = await adminFetch(`${API_URL}/admin/profiles/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ approveUpdate: true })
@@ -68,7 +82,7 @@ export default function AdminDashboard({ currentUser, setCurrentUser }) {
   };
 
   const handleRejectUpdate = async (id) => {
-    const res = await fetch(`${API_URL}/admin/profiles/${id}`, {
+    const res = await adminFetch(`${API_URL}/admin/profiles/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ rejectUpdate: true })
@@ -80,7 +94,7 @@ export default function AdminDashboard({ currentUser, setCurrentUser }) {
   };
 
   const handleReject = async (id) => {
-    const res = await fetch(`${API_URL}/admin/profiles/${id}`, {
+    const res = await adminFetch(`${API_URL}/admin/profiles/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status: 'rejected' })
@@ -90,7 +104,7 @@ export default function AdminDashboard({ currentUser, setCurrentUser }) {
 
   const handleDelete = async (id) => {
     if (window.confirm('هل أنت تأكد من حذف الحساب نهائياً؟')) {
-      const res = await fetch(`${API_URL}/admin/profiles/${id}`, { method: 'DELETE' });
+      const res = await adminFetch(`${API_URL}/admin/profiles/${id}`, { method: 'DELETE' });
       if (res.ok) { alert('تم حذف الحساب'); fetchProfiles(); }
     }
   };
@@ -124,7 +138,7 @@ export default function AdminDashboard({ currentUser, setCurrentUser }) {
         </div>
         <div className={styles.userBar}>
           <span style={{ color: '#f59e0b', fontWeight: 'bold' }}>👑 أدمن المنصة</span>
-          <button className={styles.logoutBtn} onClick={() => setCurrentUser(null)}><LogOut size={16} /> خروج</button>
+          <button className={styles.logoutBtn} onClick={() => { localStorage.removeItem('syrian_musicians_user'); setCurrentUser(null); }}><LogOut size={16} /> خروج</button>
         </div>
       </header>
 

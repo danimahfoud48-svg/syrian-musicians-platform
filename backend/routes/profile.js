@@ -141,7 +141,8 @@ router.put('/:id', upload.fields([{ name: 'avatar', maxCount: 1 }, { name: 'newA
           ? 'تم حفظ السيرة والصورة فوراً، وإرسال طلب الآلات الجديدة للمراجعة! 🎷' 
           : 'تم حفظ وتثبيت بيانات الملف الشخصي بنجاح! ✨';
 
-        res.json({ message: responseMessage, user: results[0] });
+        const { password: _omit, ...safeUser } = results[0];
+        res.json({ message: responseMessage, user: safeUser });
       });
     });
   });

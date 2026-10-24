@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const multer = require('multer');
 const path = require('path');
+const bcrypt = require('bcryptjs');
 const { v2: cloudinary } = require('cloudinary');
 const db = require('../db');
 
@@ -29,33 +30,52 @@ function uploadToCloudinary(file) {
   });
 }
 
+// تحويل db.query (callback) إلى Promise لتسهيل الكتابة بـ async/await
+const query = (sql, params) =>
+  new Promise((resolve, reject) => {
+    db.query(sql, params, (err, results) => (err ? reject(err) : resolve(results)));
+  });
+
+const SALT_ROUNDS = 10;
+
+// هل القيمة المخزنة هاش bcrypt؟ (بتبدأ بـ $2a$ أو $2b$ أو $2y$)
+const isHashed = (value) => /^\$2[aby]\$\d{2}\$/.test(value || '');
+
 // 🎯 1. تسجيل حساب جديد
-router.post('/register', upload.single('attachment'), (req, res) => {
-  let { fullName, email, password, role, city, bio, instruments } = req.body;
+router.post('/register', upload.single('attachment'), async (req, res) => {
+  try {
+    let { fullName, email, password, role, city, bio, instruments } = req.body;
 
-  // تنظيف مدخل الـ role
-  const cleanRole = role ? role.trim().toLowerCase() : 'musician';
+    if (!fullName || !email || !password || !city) {
+      return res.status(400).json({ error: 'يرجى تعبئة جميع الحقول المطلوبة' });
+    }
+    if (password.length < 6) {
+      return res.status(400).json({ error: 'كلمة المرور يجب ألا تقل عن 6 أحرف' });
+    }
 
-  // 🎯 تحديد الدور القياسي الصارم (Standard Role Assignment)
-  let finalRole = 'musician';
-  if (cleanRole === 'restaurant') {
-    finalRole = 'restaurant';
-  } else if (cleanRole === 'organizer') {
-    finalRole = 'organizer';
-  } else if (cleanRole === 'maestro' || (instruments && (instruments.includes('قائد فرقة') || instruments.includes('فرقة موسيقية')))) {
-    finalRole = 'maestro';
-  }
+    // تنظيف مدخل الـ role
+    const cleanRole = role ? role.trim().toLowerCase() : 'musician';
 
-  // التأكد من إرفاق الملف التوثيقي لأصحاب العمل (المطاعم والمتعهدين) أو العازفين حسب سياسة الموقع
-  const isEmployerRole = finalRole === 'restaurant' || finalRole === 'organizer';
-  if (!req.file && !isEmployerRole) {
-    return res.status(400).json({ error: 'الملف المرفق إلزامي للتوثيق' });
-  }
+    // 🎯 تحديد الدور القياسي الصارم (Standard Role Assignment)
+    let finalRole = 'musician';
+    if (cleanRole === 'restaurant') {
+      finalRole = 'restaurant';
+    } else if (cleanRole === 'organizer') {
+      finalRole = 'organizer';
+    } else if (cleanRole === 'maestro' || (instruments && (instruments.includes('قائد فرقة') || instruments.includes('فرقة موسيقية')))) {
+      finalRole = 'maestro';
+    }
 
-  const checkQuery = 'SELECT * FROM profiles WHERE email = ?';
-  db.query(checkQuery, [email], async (err, results) => {
-    if (err) return res.status(500).json({ error: err.message });
-    if (results.length > 0) return res.status(400).json({ error: 'البريد الإلكتروني مستخدم مسبقاً' });
+    // التأكد من إرفاق الملف التوثيقي لأصحاب العمل (المطاعم والمتعهدين) أو العازفين حسب سياسة الموقع
+    const isEmployerRole = finalRole === 'restaurant' || finalRole === 'organizer';
+    if (!req.file && !isEmployerRole) {
+      return res.status(400).json({ error: 'الملف المرفق إلزامي للتوثيق' });
+    }
+
+    const existing = await query('SELECT id FROM profiles WHERE email = ?', [email]);
+    if (existing.length > 0) {
+      return res.status(400).json({ error: 'البريد الإلكتروني مستخدم مسبقاً' });
+    }
 
     // 🎯 رفع الملف لـ Cloudinary (بعد التأكد أن الإيميل غير مستخدم)
     let attachment = '';
@@ -78,40 +98,54 @@ router.post('/register', upload.single('attachment'), (req, res) => {
       else finalInstruments = 'عازف';
     }
 
-    // 🎯 جملة INSERT نظيفة ومحددة بترتيب الأعمدة الدقيق لمنع انزياح البيانات
-    const insertQuery = `
-      INSERT INTO profiles 
-      (full_name, email, password, role, city, bio, instruments, attachment, status) 
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `;
+    // 🔐 تشفير كلمة المرور قبل التخزين
+    const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
 
-    db.query(insertQuery, [
-      fullName,
-      email,
-      password,
-      finalRole,
-      city,
-      bio || '',
-      finalInstruments,
-      attachment,
-      'pending'
-    ], (err) => {
-      if (err) return res.status(500).json({ error: err.message });
-      res.json({ message: 'تم إرسال الطلب بنجاح بانتظار موافقة الأدمن' });
-    });
-  });
+    await query(
+      `INSERT INTO profiles
+       (full_name, email, password, role, city, bio, instruments, attachment, status)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [fullName, email, passwordHash, finalRole, city, bio || '', finalInstruments, attachment, 'pending']
+    );
+
+    res.json({ message: 'تم إرسال الطلب بنجاح بانتظار موافقة الأدمن' });
+  } catch (err) {
+    console.error('Register error:', err);
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // 🎯 2. تسجيل الدخول
-router.post('/login', (req, res) => {
-  const { email, password } = req.body;
-  const query = 'SELECT * FROM profiles WHERE email = ? AND password = ?';
+router.post('/login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    if (!email || !password) {
+      return res.status(400).json({ error: 'البريد وكلمة المرور مطلوبان' });
+    }
 
-  db.query(query, [email, password], (err, results) => {
-    if (err) return res.status(500).json({ error: err.message });
-    if (results.length === 0) return res.status(401).json({ error: 'البريد أو كلمة المرور غير صحيحة' });
+    const results = await query('SELECT * FROM profiles WHERE email = ?', [email]);
+    if (results.length === 0) {
+      return res.status(401).json({ error: 'البريد أو كلمة المرور غير صحيحة' });
+    }
 
-    let user = results[0];
+    const user = results[0];
+    const stored = user.password || '';
+    let valid = false;
+
+    if (isHashed(stored)) {
+      valid = await bcrypt.compare(password, stored);
+    } else {
+      // 🔄 حساب قديم بكلمة مرور نص عادي: نتحقق منها، وإذا صحيحة نشفّرها ونحدّث الداتابيز فوراً
+      valid = stored === password;
+      if (valid) {
+        const newHash = await bcrypt.hash(password, SALT_ROUNDS);
+        await query('UPDATE profiles SET password = ? WHERE id = ?', [newHash, user.id]);
+      }
+    }
+
+    if (!valid) {
+      return res.status(401).json({ error: 'البريد أو كلمة المرور غير صحيحة' });
+    }
 
     if (user.status === 'pending' && user.role !== 'admin') {
       return res.status(403).json({ error: 'حسابك قيد المراجعة من قِبل الأدمن' });
@@ -120,8 +154,13 @@ router.post('/login', (req, res) => {
       return res.status(403).json({ error: 'عذراً، تم رفض حسابك' });
     }
 
-    res.json({ message: 'تم تسجيل الدخول بنجاح', user });
-  });
+    // ما بنرجّع كلمة المرور (ولا الهاش) للمتصفح
+    const { password: _omit, ...safeUser } = user;
+    res.json({ message: 'تم تسجيل الدخول بنجاح', user: safeUser });
+  } catch (err) {
+    console.error('Login error:', err);
+    res.status(500).json({ error: err.message });
+  }
 });
 
 module.exports = router;

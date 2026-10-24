@@ -5,7 +5,7 @@ import gsap from 'gsap';
 import Auth from './components/Auth';
 import AdminDashboard from './components/AdminDashboard';
 import UserDashboard from './components/UserDashboard';
-import API from '../api';
+import API from './api';
 
 const API_URL = `${window.location.hostname === 'localhost' ? 'http://localhost:5000' : ''}/api`;
 export default function App() {

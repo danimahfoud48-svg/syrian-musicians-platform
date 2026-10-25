@@ -4,6 +4,7 @@ const multer = require('multer');
 const path = require('path');
 const { v2: cloudinary } = require('cloudinary');
 const db = require('../db');
+const { requireAuth } = require('../middleware/authMiddleware');
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -69,8 +70,13 @@ router.get('/public/:id', (req, res) => {
 });
 
 // 3️⃣ تحديث البروفايل
-router.put('/:id', upload.fields([{ name: 'avatar', maxCount: 1 }, { name: 'newAttachment', maxCount: 1 }]), (req, res) => {
+router.put('/:id', requireAuth, upload.fields([{ name: 'avatar', maxCount: 1 }, { name: 'newAttachment', maxCount: 1 }]), (req, res) => {
   const { id } = req.params;
+
+  // 🔐 كل مستخدم بيعدّل ملفه الشخصي هو بس
+  if (Number(id) !== req.user.id) {
+    return res.status(403).json({ error: 'لا يمكنك تعديل حساب غير حسابك' });
+  }
   const { bio, instruments, instrumentsChanged, removeAvatar } = req.body;
 
   const avatarUpload = req.files && req.files['avatar'] ? req.files['avatar'][0] : null;
@@ -161,14 +167,19 @@ router.get('/videos/:userId', (req, res) => {
 });
 
 // 5️⃣ حفظ رابط فيديو مرفوع مسبقاً على Cloudinary (الرفع بيصير من المتصفح مباشرة)
-router.post('/videos', (req, res) => {
-  const { userId, title, videoUrl } = req.body;
-  if (!userId || !videoUrl) {
-    return res.status(400).json({ message: 'بيانات الفيديو ناقصة' });
+router.post('/videos', requireAuth, (req, res) => {
+  const { title, videoUrl } = req.body;
+  const userId = req.user.id; // 🔐 الهوية من التوكن، مش من الطلب
+
+  // لازم يكون الرابط من حساب Cloudinary تبعنا
+  const allowedPrefix = `https://res.cloudinary.com/${process.env.CLOUDINARY_CLOUD_NAME}/`;
+  if (!videoUrl || typeof videoUrl !== 'string' || !videoUrl.startsWith(allowedPrefix)) {
+    return res.status(400).json({ message: 'رابط الفيديو غير صالح' });
   }
+
   db.query(
     'INSERT INTO videos (user_id, title, video_url) VALUES (?, ?, ?)',
-    [userId, title || '', videoUrl],
+    [userId, String(title || '').slice(0, 255), videoUrl],
     (err) => {
       if (err) return res.status(500).json({ message: err.message });
       res.json({ message: 'تم حفظ الفيديو بنجاح' });

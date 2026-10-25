@@ -3,6 +3,7 @@ import { Upload, Film, Video } from 'lucide-react';
 import gsap from 'gsap';
 import styles from './VideosManager.module.css';
 import API from '../api';
+import { authFetch } from '../authFetch';
 
 // إعدادات Cloudinary: الفيديو بينرفع من المتصفح مباشرة (Vercel ما بيقبل طلبات أكبر من 4.5MB)
 const CLOUD_NAME = 'mpiu1vqo';
@@ -91,7 +92,7 @@ export default function VideosManager({ API_URL, currentUser }) {
       }
 
       // 2) حفظ الرابط بالداتابيز
-      const res = await fetch(`${API_URL}/profile/videos`, {
+      const res = await authFetch(currentUser, `${API_URL}/profile/videos`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

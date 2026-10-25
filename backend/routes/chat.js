@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../db'); // اتصال MySQL
+const { requireAuth } = require('../middleware/authMiddleware');
 
 // 🛠️ إنشاء الجداول وتأمين عمود last_active
 const initTables = () => {
@@ -36,31 +37,59 @@ const initTables = () => {
 };
 initTables();
 
-// 🟢 نقطة تسجيل نبضة نشاط المستخدم (Heartbeat)
-router.post('/ping', (req, res) => {
-  const { userId } = req.body;
-  if (!userId) return res.status(400).json({ error: 'ID مطلوب' });
-  
-  db.query(`UPDATE profiles SET last_active = NOW() WHERE id = ?`, [userId], (err) => {
-    if (err) return res.status(500).json({ error: 'خطأ في تحديث النشاط' });
-    res.json({ success: true });
-  });
-});
+const MAX_MESSAGE_LENGTH = 2000;
+
+// يتأكد إن المستخدم طرف بالمحادثة
+const checkMembership = (conversationId, userId, cb) => {
+  db.query(
+    'SELECT id FROM conversations WHERE id = ? AND (user1_id = ? OR user2_id = ?)',
+    [conversationId, userId, userId],
+    cb
+  );
+};
+
+// المسار :userId لازم يطابق صاحب التوكن (كل واحد بيشوف بياناته بس)
+const isSameUser = (req) => Number(req.params.userId) === req.user.id;
 
 // 🔴 نقطة تسجيل الخروج أو إغلاق الشات
-router.post('/offline', (req, res) => {
-  const { userId } = req.body;
-  if (!userId) return res.status(400).json({ error: 'ID مطلوب' });
+// sendBeacon ما بيقدر يبعت هيدر Authorization، فبنقبل التوكن من جسم الطلب لهالمسار بس
+router.post(
+  '/offline',
+  (req, res, next) => {
+    if (!req.headers.authorization && req.body && req.body.token) {
+      req.headers.authorization = 'Bearer ' + req.body.token;
+    }
+    next();
+  },
+  requireAuth,
+  (req, res) => {
+    db.query(
+      `UPDATE profiles SET last_active = DATE_SUB(NOW(), INTERVAL 1 HOUR) WHERE id = ?`,
+      [req.user.id],
+      (err) => {
+        if (err) return res.status(500).json({ error: 'خطأ في تعيين الحالة أوفلاين' });
+        res.json({ success: true });
+      }
+    );
+  }
+);
 
-  db.query(`UPDATE profiles SET last_active = DATE_SUB(NOW(), INTERVAL 1 HOUR) WHERE id = ?`, [userId], (err) => {
-    if (err) return res.status(500).json({ error: 'خطأ في تعيين الحالة أوفلاين' });
+// 🔐 كل المسارات تحت هون بتحتاج تسجيل دخول
+router.use(requireAuth);
+
+// 🟢 نقطة تسجيل نبضة نشاط المستخدم (Heartbeat)
+router.post('/ping', (req, res) => {
+  db.query(`UPDATE profiles SET last_active = NOW() WHERE id = ?`, [req.user.id], (err) => {
+    if (err) return res.status(500).json({ error: 'خطأ في تحديث النشاط' });
     res.json({ success: true });
   });
 });
 
 // 🔴 1️⃣ فحص إجمالي الرسائل غير المقروءة
 router.get('/unread-count/:userId', (req, res) => {
-  const userId = req.params.userId;
+  if (!isSameUser(req)) return res.status(403).json({ error: 'غير مسموح' });
+
+  const userId = req.user.id;
   const query = `
     SELECT COUNT(m.id) AS unreadCount
     FROM messages m
@@ -75,40 +104,48 @@ router.get('/unread-count/:userId', (req, res) => {
   });
 });
 
-// 2️⃣ بدء محادثة جديدة (مصححة لتقبل الحالتين بأمان التام)
+// 2️⃣ بدء محادثة جديدة (الطرف الأول دايماً هو صاحب التوكن)
 router.post('/start', (req, res) => {
-  const user1Id = req.body.user1Id || req.body.user1;
-  const user2Id = req.body.user2Id || req.body.user2;
+  const me = req.user.id;
+  const otherId = Number(req.body.user2Id || req.body.user2);
 
-  if (!user1Id || !user2Id) return res.status(400).json({ error: 'المستخدمين مطلوبين' });
+  if (!otherId || otherId === me) return res.status(400).json({ error: 'مستخدم غير صالح' });
 
-  const u1 = Math.min(Number(user1Id), Number(user2Id));
-  const u2 = Math.max(Number(user1Id), Number(user2Id));
+  // الطرف التاني لازم يكون حساب معتمد
+  db.query(`SELECT id FROM profiles WHERE id = ? AND status = 'approved'`, [otherId], (errU, users) => {
+    if (errU) return res.status(500).json({ error: 'خطأ في التحقق من المستخدم' });
+    if (!users || users.length === 0) return res.status(404).json({ error: 'المستخدم غير موجود' });
 
-  const findQuery = `SELECT * FROM conversations WHERE user1_id = ? AND user2_id = ?`;
-  db.query(findQuery, [u1, u2], (err, results) => {
-    if (err) return res.status(500).json({ error: 'خطأ في البحث عن المحادثة' });
+    const u1 = Math.min(me, otherId);
+    const u2 = Math.max(me, otherId);
 
-    if (results && results.length > 0) {
-      return res.json({ conversation_id: results[0].id, ...results[0] });
-    }
+    const findQuery = `SELECT * FROM conversations WHERE user1_id = ? AND user2_id = ?`;
+    db.query(findQuery, [u1, u2], (err, results) => {
+      if (err) return res.status(500).json({ error: 'خطأ في البحث عن المحادثة' });
 
-    const insertQuery = `INSERT INTO conversations (user1_id, user2_id) VALUES (?, ?)`;
-    db.query(insertQuery, [u1, u2], (err2, insertResult) => {
-      if (err2) return res.status(500).json({ error: 'فشل إنشاء المحادثة' });
-      return res.json({ conversation_id: insertResult.insertId, user1_id: u1, user2_id: u2 });
+      if (results && results.length > 0) {
+        return res.json({ conversation_id: results[0].id, ...results[0] });
+      }
+
+      const insertQuery = `INSERT INTO conversations (user1_id, user2_id) VALUES (?, ?)`;
+      db.query(insertQuery, [u1, u2], (err2, insertResult) => {
+        if (err2) return res.status(500).json({ error: 'فشل إنشاء المحادثة' });
+        return res.json({ conversation_id: insertResult.insertId, user1_id: u1, user2_id: u2 });
+      });
     });
   });
 });
 
 // 3️⃣ جلب المحادثات + وقت آخر نشاط للطرف الآخر
 router.get('/conversations/:userId', (req, res) => {
-  const userId = req.params.userId;
+  if (!isSameUser(req)) return res.status(403).json({ error: 'غير مسموح' });
+
+  const userId = req.user.id;
 
   db.query(`UPDATE profiles SET last_active = NOW() WHERE id = ?`, [userId]);
 
   const query = `
-    SELECT 
+    SELECT
       c.id AS conversation_id,
       c.updated_at,
       p.id AS peer_id,
@@ -134,28 +171,57 @@ router.get('/conversations/:userId', (req, res) => {
   });
 });
 
-// 4️⃣ جلب رسائل محادثة معينة
+// 4️⃣ جلب رسائل محادثة معينة (بس لأطرافها)
 router.get('/messages/:conversationId/:userId', (req, res) => {
-  const { conversationId, userId } = req.params;
+  if (!isSameUser(req)) return res.status(403).json({ error: 'غير مسموح' });
 
-  db.query(`UPDATE messages SET is_read = 1 WHERE conversation_id = ? AND sender_id != ?`, [conversationId, userId]);
+  const { conversationId } = req.params;
+  const userId = req.user.id;
 
-  db.query(`SELECT * FROM messages WHERE conversation_id = ? ORDER BY id ASC`, [conversationId], (err, rows) => {
-    if (err) return res.status(500).json({ error: 'خطأ في جلب الرسائل' });
-    res.json(rows || []);
+  checkMembership(conversationId, userId, (errM, rows) => {
+    if (errM) return res.status(500).json({ error: 'خطأ في جلب الرسائل' });
+    if (!rows || rows.length === 0) return res.status(403).json({ error: 'غير مسموح' });
+
+    db.query(
+      `UPDATE messages SET is_read = 1 WHERE conversation_id = ? AND sender_id != ?`,
+      [conversationId, userId],
+      () => {
+        db.query(`SELECT * FROM messages WHERE conversation_id = ? ORDER BY id ASC`, [conversationId], (err, msgs) => {
+          if (err) return res.status(500).json({ error: 'خطأ في جلب الرسائل' });
+          res.json(msgs || []);
+        });
+      }
+    );
   });
 });
 
-// 5️⃣ إرسال رسالة جديدة
+// 5️⃣ إرسال رسالة جديدة (المرسل دايماً هو صاحب التوكن)
 router.post('/send', (req, res) => {
-  const { conversationId, senderId, text } = req.body;
-  if (!conversationId || !senderId || !text?.trim()) return res.status(400).json({ error: 'مطلوب حقول أساسية' });
+  const { conversationId, text } = req.body;
+  const senderId = req.user.id;
 
-  db.query(`INSERT INTO messages (conversation_id, sender_id, text, is_read) VALUES (?, ?, ?, 0)`, [conversationId, senderId, text.trim()], (err, result) => {
-    if (err) return res.status(500).json({ error: 'فشل إرسال الرسالة' });
+  if (!conversationId || typeof text !== 'string' || !text.trim()) {
+    return res.status(400).json({ error: 'مطلوب حقول أساسية' });
+  }
+  if (text.length > MAX_MESSAGE_LENGTH) {
+    return res.status(400).json({ error: 'الرسالة طويلة جداً' });
+  }
 
-    db.query(`UPDATE conversations SET updated_at = CURRENT_TIMESTAMP WHERE id = ?`, [conversationId]);
-    res.json({ success: true, messageId: result.insertId });
+  checkMembership(conversationId, senderId, (errM, rows) => {
+    if (errM) return res.status(500).json({ error: 'فشل إرسال الرسالة' });
+    if (!rows || rows.length === 0) return res.status(403).json({ error: 'غير مسموح' });
+
+    db.query(
+      `INSERT INTO messages (conversation_id, sender_id, text, is_read) VALUES (?, ?, ?, 0)`,
+      [conversationId, senderId, text.trim()],
+      (err, result) => {
+        if (err) return res.status(500).json({ error: 'فشل إرسال الرسالة' });
+
+        db.query(`UPDATE conversations SET updated_at = CURRENT_TIMESTAMP WHERE id = ?`, [conversationId], () => {
+          res.json({ success: true, messageId: result.insertId });
+        });
+      }
+    );
   });
 });
 

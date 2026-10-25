@@ -4,6 +4,7 @@ import { Send, MessageSquare, User, Search } from 'lucide-react';
 import gsap from 'gsap';
 import styles from './ChatPage.module.css';
 import API from '../api';
+import { authFetch } from '../authFetch';
 import { fileUrl } from '../fileUrl';
 
 const API_URL = window.location.hostname === 'localhost' ? 'http://localhost:5000/api' : '/api';
@@ -51,7 +52,7 @@ export default function ChatPage({ currentUser }) {
 
     const sendPing = async () => {
       try {
-        await fetch(`${API_URL}/chat/ping`, {
+        await authFetch(currentUser, `${API_URL}/chat/ping`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ userId: currentUser.id })
@@ -71,7 +72,7 @@ export default function ChatPage({ currentUser }) {
     if (!currentUser?.id) return;
 
     const handleBeforeUnload = () => {
-      const data = JSON.stringify({ userId: currentUser.id });
+      const data = JSON.stringify({ userId: currentUser.id, token: currentUser.token });
       const blob = new Blob([data], { type: 'application/json' });
       navigator.sendBeacon(`${API_URL}/chat/offline`, blob);
     };
@@ -86,7 +87,7 @@ export default function ChatPage({ currentUser }) {
   const fetchConversations = async () => {
     if (!currentUser?.id) return;
     try {
-      const res = await fetch(`${API_URL}/chat/conversations/${currentUser.id}`);
+      const res = await authFetch(currentUser, `${API_URL}/chat/conversations/${currentUser.id}`);
       const data = await res.json();
       if (Array.isArray(data)) {
         setConversations(data);
@@ -105,7 +106,7 @@ export default function ChatPage({ currentUser }) {
   // 🎯 2️⃣ جلب الرسائل للمحادثة النشطة
   const fetchMessages = async (convId) => {
     try {
-      const res = await fetch(`${API_URL}/chat/messages/${convId}/${currentUser.id}`);
+      const res = await authFetch(currentUser, `${API_URL}/chat/messages/${convId}/${currentUser.id}`);
       const data = await res.json();
       if (Array.isArray(data)) {
         setMessages(data);
@@ -122,7 +123,7 @@ export default function ChatPage({ currentUser }) {
     // محاولة جلب أو بدء محادثة مباشرة مع الطرف الآخر
     const initTargetConversation = async () => {
       try {
-        const res = await fetch(`${API_URL}/chat/start`, {
+        const res = await authFetch(currentUser, `${API_URL}/chat/start`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
@@ -174,7 +175,7 @@ export default function ChatPage({ currentUser }) {
     if (!newMessage.trim() || !activeConv) return;
 
     try {
-      const res = await fetch(`${API_URL}/chat/send`, {
+      const res = await authFetch(currentUser, `${API_URL}/chat/send`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

@@ -6,6 +6,7 @@ import MusiciansDirectory from './MusiciansDirectory';
 import ChatPage from './ChatPage';
 import styles from './EmployerDashboard.module.css';
 import API from '../api';
+import { authFetch } from '../authFetch';
 import { fileUrl } from '../fileUrl';
 
 const API_URL = window.location.hostname === 'localhost' ? 'http://localhost:5000/api' : '/api';
@@ -49,7 +50,7 @@ export default function EmployerDashboard({ currentUser, setCurrentUser }) {
 
     const sendGlobalPing = async () => {
       try {
-        await fetch(`${API_URL}/chat/ping`, {
+        await authFetch(currentUser, `${API_URL}/chat/ping`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ userId: currentUser.id })
@@ -66,7 +67,7 @@ export default function EmployerDashboard({ currentUser, setCurrentUser }) {
 
   const checkUnreadMessages = async () => {
     try {
-      const res = await fetch(`${API_URL}/chat/unread-count/${currentUser.id}`);
+      const res = await authFetch(currentUser, `${API_URL}/chat/unread-count/${currentUser.id}`);
       const data = await res.json();
       setHasUnread(data.unreadCount > 0);
     } catch (err) {
@@ -83,7 +84,7 @@ export default function EmployerDashboard({ currentUser, setCurrentUser }) {
   const handleLogout = async () => {
     if (!window.confirm('هل تريد تسجيل الخروج؟')) return;
     try {
-      await fetch(`${API_URL}/chat/offline`, {
+      await authFetch(currentUser, `${API_URL}/chat/offline`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId: currentUser.id })
@@ -101,12 +102,13 @@ export default function EmployerDashboard({ currentUser, setCurrentUser }) {
     const formData = new FormData();
     formData.append('bio', bio);
     try {
-      const res = await fetch(`${API_URL}/profile/${currentUser.id}`, { method: 'PUT', body: formData });
+      const res = await authFetch(currentUser, `${API_URL}/profile/${currentUser.id}`, { method: 'PUT', body: formData });
       const data = await res.json();
       if (res.ok) {
         alert('تم تحديث السيرة الذاتية بنجاح! ✨');
-        setCurrentUser(data.user);
-        localStorage.setItem('syrian_musicians_user', JSON.stringify(data.user));
+        const updatedUser = { ...data.user, token: currentUser.token };
+        setCurrentUser(updatedUser);
+        localStorage.setItem('syrian_musicians_user', JSON.stringify(updatedUser));
       } else { alert(data.error); }
     } catch (err) { alert('حدث خطأ أثناء حفظ السيرة الذاتية'); }
     finally { setLoadingBio(false); }
@@ -120,12 +122,13 @@ export default function EmployerDashboard({ currentUser, setCurrentUser }) {
     formData.append('avatar', file);
     formData.append('bio', bio);
     try {
-      const res = await fetch(`${API_URL}/profile/${currentUser.id}`, { method: 'PUT', body: formData });
+      const res = await authFetch(currentUser, `${API_URL}/profile/${currentUser.id}`, { method: 'PUT', body: formData });
       const data = await res.json();
       if (res.ok) {
         alert('تم تحديث الصورة الشخصية بنجاح! 📸');
-        setCurrentUser(data.user);
-        localStorage.setItem('syrian_musicians_user', JSON.stringify(data.user));
+        const updatedUser = { ...data.user, token: currentUser.token };
+        setCurrentUser(updatedUser);
+        localStorage.setItem('syrian_musicians_user', JSON.stringify(updatedUser));
         if (data.user.avatar) setPreviewAvatar(`${fileUrl(data.user.avatar)}?t=${new Date().getTime()}`);
       } else { alert(data.error); }
     } catch (err) { alert('حدث خطأ أثناء رفع الصورة'); }
@@ -139,12 +142,13 @@ export default function EmployerDashboard({ currentUser, setCurrentUser }) {
     formData.append('removeAvatar', 'true');
     formData.append('bio', bio);
     try {
-      const res = await fetch(`${API_URL}/profile/${currentUser.id}`, { method: 'PUT', body: formData });
+      const res = await authFetch(currentUser, `${API_URL}/profile/${currentUser.id}`, { method: 'PUT', body: formData });
       const data = await res.json();
       if (res.ok) {
         alert('تم إزالة الصورة الشخصية بنجاح!');
-        setCurrentUser(data.user);
-        localStorage.setItem('syrian_musicians_user', JSON.stringify(data.user));
+        const updatedUser = { ...data.user, token: currentUser.token };
+        setCurrentUser(updatedUser);
+        localStorage.setItem('syrian_musicians_user', JSON.stringify(updatedUser));
         setPreviewAvatar(null);
       } else { alert(data.error); }
     } catch (err) { alert('حدث خطأ أثناء إزالة الصورة'); }

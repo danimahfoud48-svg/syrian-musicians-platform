@@ -5,6 +5,7 @@ import gsap from 'gsap';
 import MusiciansDirectory from './MusiciansDirectory';
 import VideosManager from './VideosManager';
 import ChatPage from './ChatPage';
+import ChangePasswordCard from './ChangePasswordCard';
 import styles from './MusicianDashboard.module.css';
 import API from '../api';
 import { authFetch } from '../authFetch';
@@ -232,6 +233,17 @@ export default function MusicianDashboard({ currentUser, setCurrentUser }) {
 
       <main style={{ padding: '20px' }}>
         <div ref={cardRef}>
+          {Number(currentUser.must_change_password) === 1 && (
+            <div style={{ background: 'rgba(245,158,11,0.12)', border: '1px solid #f59e0b', color: '#fcd34d', padding: '12px 16px', borderRadius: '12px', marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+              <span>🔑 كلمة سرك الحالية مؤقتة. غيّرها الآن من ملفك الشخصي.</span>
+              <button
+                onClick={() => navigate('/profile')}
+                style={{ background: '#f59e0b', color: '#070709', border: 'none', borderRadius: '8px', padding: '6px 14px', fontWeight: 'bold', cursor: 'pointer' }}
+              >
+                تغيير كلمة السر
+              </button>
+            </div>
+          )}
           <Routes>
             <Route path="/" element={<Navigate to="/profile" replace />} />
             <Route path="/profile" element={
@@ -283,6 +295,8 @@ export default function MusicianDashboard({ currentUser, setCurrentUser }) {
                     <Send size={16} /> إرسال الطلب للأدمن
                   </button>
                 </div>
+                <hr className={styles.divider} />
+                <ChangePasswordCard currentUser={currentUser} setCurrentUser={setCurrentUser} API_URL={API_URL} />
               </div>
             } />
             <Route path="/videos" element={<div style={{ maxWidth: '800px', margin: '0 auto' }}><VideosManager API_URL={API_URL} currentUser={currentUser} /></div>} />

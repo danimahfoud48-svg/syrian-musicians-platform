@@ -15,6 +15,7 @@ const fileUrl = (f) =>
 export default function AdminDashboard({ currentUser, setCurrentUser }) {
   const [profilesList, setProfilesList] = useState([]);
   const cardsRef = useRef([]);
+  const [tempPassword, setTempPassword] = useState(null);
 
   // 🔐 كل طلبات الأدمن بتنبعت مع التوكن، وإذا السيرفر رفضه بنطلّع الأدمن لتسجيل الدخول
   const adminFetch = async (url, options = {}) => {
@@ -109,6 +110,19 @@ export default function AdminDashboard({ currentUser, setCurrentUser }) {
     }
   };
 
+  // 🔑 توليد كلمة سر مؤقتة لمستخدم
+  const handleResetPassword = async (profile) => {
+    if (!window.confirm(`إنشاء كلمة سر مؤقتة جديدة للحساب "${profile.full_name}"؟ كلمة سره الحالية رح تتلغى.`)) return;
+    const res = await adminFetch(`${API_URL}/admin/profiles/${profile.id}/reset-password`, { method: 'POST' });
+    const data = await res.json().catch(() => ({}));
+    if (res.ok) {
+      setTempPassword({ name: profile.full_name, email: profile.email, password: data.tempPassword });
+      fetchProfiles();
+    } else if (res.status !== 401 && res.status !== 403) {
+      alert(data.error || 'حدث خطأ أثناء إعادة التعيين');
+    }
+  };
+
   const nonAdminProfiles = profilesList.filter(req => req.role !== 'admin');
 
   const renderInstruments = (instString) => {
@@ -199,6 +213,20 @@ export default function AdminDashboard({ currentUser, setCurrentUser }) {
                         </div>
                       )}
 
+                      {req.reset_requested_at && (
+                        <div className={styles.pendingUpdateBox}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#f59e0b', fontWeight: 'bold', fontSize: '0.8rem' }}>
+                            <AlertCircle size={15} /> 🔑 طلب استعادة كلمة السر
+                          </div>
+                          <p style={{ color: '#cbd5e1', fontSize: '0.78rem', margin: '6px 0' }}>
+                            {new Date(req.reset_requested_at).toLocaleString()}
+                          </p>
+                          <button className={styles.approveUpdateBtn} onClick={() => handleResetPassword(req)}>
+                            <Check size={13} /> إنشاء كلمة سر مؤقتة
+                          </button>
+                        </div>
+                      )}
+
                       {hasPendingUpdate && (
                         <div className={styles.pendingUpdateBox}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#f59e0b', fontWeight: 'bold', fontSize: '0.8rem' }}>
@@ -247,6 +275,9 @@ export default function AdminDashboard({ currentUser, setCurrentUser }) {
                         <button className={styles.rejectBtn} onClick={() => handleReject(req.id)}>
                           <XCircle size={13} /> حظر/رفض
                         </button>
+                        <button className={styles.approveUpdateBtn} title="كلمة سر مؤقتة" onClick={() => handleResetPassword(req)}>
+                          🔑
+                        </button>
                         <button className={styles.deleteBtn} onClick={() => handleDelete(req.id)}>
                           <Trash2 size={13} />
                         </button>
@@ -259,6 +290,38 @@ export default function AdminDashboard({ currentUser, setCurrentUser }) {
           )}
         </div>
       </main>
+
+      {tempPassword && (
+        <div
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '16px' }}
+          onClick={() => setTempPassword(null)}
+        >
+          <div
+            style={{ background: '#101014', border: '1px solid #f59e0b', borderRadius: '16px', padding: '24px', maxWidth: '420px', width: '100%', color: '#fff', textAlign: 'center' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 style={{ margin: '0 0 8px' }}>🔑 كلمة السر المؤقتة</h3>
+            <p style={{ color: '#cbd5e1', fontSize: '0.85rem', margin: '0 0 14px' }}>
+              {tempPassword.name} ({tempPassword.email})
+            </p>
+            <div style={{ fontSize: '1.6rem', letterSpacing: '2px', direction: 'ltr', background: '#070709', padding: '12px', borderRadius: '10px', color: '#f59e0b', userSelect: 'all', wordBreak: 'break-all' }}>
+              {tempPassword.password}
+            </div>
+            <p style={{ color: '#94a3b8', fontSize: '0.8rem', margin: '14px 0' }}>
+              انسخها وابعتها للمستخدم (واتساب مثلاً). ما رح تظهر مرة تانية، وهو لازم يغيّرها بأول دخول.
+            </p>
+            <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+              <button
+                className={styles.approveBtn}
+                onClick={() => { navigator.clipboard?.writeText(tempPassword.password); }}
+              >
+                نسخ
+              </button>
+              <button className={styles.rejectBtn} onClick={() => setTempPassword(null)}>إغلاق</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

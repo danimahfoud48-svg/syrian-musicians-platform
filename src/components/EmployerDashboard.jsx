@@ -4,6 +4,7 @@ import { User, Camera, Trash2, Save, LogOut, Users, Building2, MessageSquare } f
 import gsap from 'gsap';
 import MusiciansDirectory from './MusiciansDirectory';
 import ChatPage from './ChatPage';
+import ChangePasswordCard from './ChangePasswordCard';
 import styles from './EmployerDashboard.module.css';
 import API from '../api';
 import { authFetch } from '../authFetch';
@@ -199,6 +200,17 @@ export default function EmployerDashboard({ currentUser, setCurrentUser }) {
 
       <main style={{ padding: '20px' }}>
         <div ref={cardRef}>
+          {Number(currentUser.must_change_password) === 1 && (
+            <div style={{ background: 'rgba(245,158,11,0.12)', border: '1px solid #f59e0b', color: '#fcd34d', padding: '12px 16px', borderRadius: '12px', marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+              <span>🔑 كلمة سرك الحالية مؤقتة. غيّرها الآن من ملفك الشخصي.</span>
+              <button
+                onClick={() => navigate('/profile')}
+                style={{ background: '#f59e0b', color: '#070709', border: 'none', borderRadius: '8px', padding: '6px 14px', fontWeight: 'bold', cursor: 'pointer' }}
+              >
+                تغيير كلمة السر
+              </button>
+            </div>
+          )}
           <Routes>
             <Route path="/" element={<Navigate to="/directory" replace />} />
             <Route 
@@ -251,6 +263,8 @@ export default function EmployerDashboard({ currentUser, setCurrentUser }) {
                     <Save size={16} /> {loadingBio ? 'جاري الحفظ...' : 'حفظ السيرة'}
                   </button>
                 </div>
+                <hr className={styles.divider} />
+                <ChangePasswordCard currentUser={currentUser} setCurrentUser={setCurrentUser} API_URL={API_URL} />
               </div>
             } />
           </Routes>

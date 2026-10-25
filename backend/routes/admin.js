@@ -2,18 +2,31 @@ const express = require('express');
 const router = express.Router();
 const path = require('path');
 const fs = require('fs');
+const crypto = require('crypto');
+const bcrypt = require('bcryptjs');
 const db = require('../db');
 const { requireAdmin } = require('../middleware/authMiddleware');
 
 // 🔐 كل مسارات الأدمن محمية: لازم توكن صحيح لحساب أدمن
 router.use(requireAdmin);
 
+// تحويل db.query (callback) إلى Promise
+const query = (sql, params) =>
+  new Promise((resolve, reject) => {
+    db.query(sql, params, (err, results) => (err ? reject(err) : resolve(results)));
+  });
+
+// كلمة سر مؤقتة سهلة القراءة (بدون حروف متشابهة مثل 0/O و1/l/I)
+const TEMP_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789';
+const generateTempPassword = (length = 10) =>
+  Array.from({ length }, () => TEMP_ALPHABET[crypto.randomInt(TEMP_ALPHABET.length)]).join('');
+
 // جلب كل الحسابات (بدون عمود كلمة المرور)
 router.get('/profiles', (req, res) => {
   const query = `
     SELECT id, full_name, email, role, city, instruments, attachment, avatar, bio,
            status, created_at, pending_bio, pending_instruments, pending_attachment,
-           is_online, last_active
+           is_online, last_active, reset_requested_at, must_change_password
     FROM profiles
     ORDER BY created_at DESC
   `;
@@ -77,6 +90,29 @@ router.put('/profiles/:id', (req, res) => {
     });
   } else {
     return res.status(400).json({ error: 'طلب غير مكتمل' });
+  }
+});
+
+// 🔑 توليد كلمة سر مؤقتة لمستخدم (بترجع مرة وحدة بس للأدمن)
+router.post('/profiles/:id/reset-password', async (req, res) => {
+  try {
+    const rows = await query('SELECT id, role FROM profiles WHERE id = ?', [req.params.id]);
+    if (rows.length === 0) return res.status(404).json({ error: 'الحساب غير موجود' });
+    if (rows[0].role === 'admin') {
+      return res.status(400).json({ error: 'لا يمكن إعادة تعيين كلمة سر الأدمن من هنا' });
+    }
+
+    const tempPassword = generateTempPassword();
+    const hash = await bcrypt.hash(tempPassword, 10);
+    await query(
+      'UPDATE profiles SET password = ?, must_change_password = 1, reset_requested_at = NULL WHERE id = ?',
+      [hash, req.params.id]
+    );
+
+    res.json({ tempPassword });
+  } catch (err) {
+    console.error('Reset password error:', err);
+    res.status(500).json({ error: 'حدث خطأ أثناء إعادة التعيين' });
   }
 });
 

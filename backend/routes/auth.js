@@ -5,7 +5,7 @@ const path = require('path');
 const bcrypt = require('bcryptjs');
 const { v2: cloudinary } = require('cloudinary');
 const db = require('../db');
-const { signToken } = require('../middleware/authMiddleware');
+const { signToken, requireAuth } = require('../middleware/authMiddleware');
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -161,6 +161,59 @@ router.post('/login', async (req, res) => {
   } catch (err) {
     console.error('Login error:', err);
     res.status(500).json({ error: err.message });
+  }
+});
+
+// 🔑 3. طلب استعادة كلمة السر (بيوصل للأدمن بلوحته)
+router.post('/forgot-password', async (req, res) => {
+  try {
+    const email = String(req.body.email || '').trim();
+    if (!email) return res.status(400).json({ error: 'اكتب بريدك الإلكتروني' });
+
+    await query(
+      `UPDATE profiles SET reset_requested_at = NOW()
+       WHERE email = ? AND status = 'approved' AND role != 'admin' AND reset_requested_at IS NULL`,
+      [email]
+    );
+
+    // نفس الرد دايماً، حتى ما حدا يقدر يعرف إذا الإيميل مسجّل عندنا
+    res.json({ message: 'إذا كان الحساب موجوداً، وصل طلبك للأدمن وبيتواصل معك قريباً.' });
+  } catch (err) {
+    console.error('Forgot password error:', err);
+    res.status(500).json({ error: 'حدث خطأ، حاول مرة أخرى' });
+  }
+});
+
+// 🔐 4. تغيير كلمة السر (للمستخدم المسجّل دخول)
+router.post('/change-password', requireAuth, async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ error: 'يرجى تعبئة كل الحقول' });
+    }
+    if (String(newPassword).length < 6) {
+      return res.status(400).json({ error: 'كلمة المرور الجديدة يجب ألا تقل عن 6 أحرف' });
+    }
+    if (newPassword === currentPassword) {
+      return res.status(400).json({ error: 'كلمة المرور الجديدة يجب أن تختلف عن الحالية' });
+    }
+
+    const rows = await query('SELECT password FROM profiles WHERE id = ?', [req.user.id]);
+    if (rows.length === 0) return res.status(404).json({ error: 'الحساب غير موجود' });
+
+    const stored = rows[0].password || '';
+    const ok = isHashed(stored) ? await bcrypt.compare(currentPassword, stored) : stored === currentPassword;
+
+    // ملاحظة: بنرجّع 400 مش 401، لأن 401 بيطلّع المستخدم من الموقع
+    if (!ok) return res.status(400).json({ error: 'كلمة المرور الحالية غير صحيحة' });
+
+    const hash = await bcrypt.hash(newPassword, SALT_ROUNDS);
+    await query('UPDATE profiles SET password = ?, must_change_password = 0 WHERE id = ?', [hash, req.user.id]);
+
+    res.json({ message: 'تم تغيير كلمة المرور بنجاح' });
+  } catch (err) {
+    console.error('Change password error:', err);
+    res.status(500).json({ error: 'حدث خطأ، حاول مرة أخرى' });
   }
 });
 

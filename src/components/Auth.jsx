@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Music, User, Lock } from 'lucide-react';
 import styles from './Auth.module.css';
+import ForgotPassword from './ForgotPassword';
 
 export default function Auth({ API_URL, setCurrentUser }) {
   const [authMode, setAuthMode] = useState('login');
@@ -149,6 +150,10 @@ export default function Auth({ API_URL, setCurrentUser }) {
           <p style={{ color: '#facc15', fontSize: '0.8rem', fontWeight: 'bold' }}>Syrian Musicians Platform</p>
         </div>
 
+        {authMode === 'forgot' ? (
+          <ForgotPassword onBack={() => handleSwitchTab('login')} />
+        ) : (
+        <>
         <div className={styles.authTabs}>
           <button className={authMode === 'login' ? styles.activeTab : styles.tab} onClick={() => handleSwitchTab('login')}>تسجيل الدخول</button>
           <button className={authMode === 'register' ? styles.activeTab : styles.tab} onClick={() => handleSwitchTab('register')}>إنشاء حساب جديد</button>
@@ -181,6 +186,13 @@ export default function Auth({ API_URL, setCurrentUser }) {
               />
             </div>
             <button type="submit" className={styles.btn} disabled={loading}>{loading ? 'جاري التحقق...' : 'دخول للمنصة'}</button>
+            <button
+              type="button"
+              onClick={() => setAuthMode('forgot')}
+              style={{ background: 'none', border: 'none', color: '#facc15', cursor: 'pointer', fontSize: '0.85rem', marginTop: '4px' }}
+            >
+              نسيت كلمة السر؟
+            </button>
           </form>
         ) : (
           <form onSubmit={handleRegister} className={styles.form} autoComplete="off">
@@ -250,6 +262,8 @@ export default function Auth({ API_URL, setCurrentUser }) {
 
             <button type="submit" className={styles.btn} disabled={loading}>{loading ? 'جاري رفع الملف وإرسال الطلب...' : 'إرسال الطلب'}</button>
           </form>
+        )}
+        </>
         )}
       </div>
     </div>
